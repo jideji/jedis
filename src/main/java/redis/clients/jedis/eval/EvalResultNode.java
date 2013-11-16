@@ -3,6 +3,7 @@ package redis.clients.jedis.eval;
 import redis.clients.util.SafeEncoder;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 public class EvalResultNode {
@@ -42,5 +43,20 @@ public class EvalResultNode {
 
     public byte[] getBytes() {
 	return (byte[]) node;
+    }
+
+    public BitSet getBitSet() {
+	BitSet bitSet = new BitSet();
+
+	int bitSetIndex = 0;
+	for (byte b : getBytes()) {
+	    for (int i = Byte.SIZE - 1; i >=0; i--) {
+		boolean isSet = (b >>> i & 1) == 1;
+		bitSet.set(bitSetIndex, isSet);
+
+		bitSetIndex++;
+	    }
+	}
+	return bitSet;
     }
 }

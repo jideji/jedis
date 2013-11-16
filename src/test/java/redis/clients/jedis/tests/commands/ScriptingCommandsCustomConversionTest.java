@@ -5,13 +5,14 @@ import redis.clients.jedis.eval.EvalResultNode;
 import redis.clients.jedis.eval.TypeSafeConverter;
 import redis.clients.util.SafeEncoder;
 
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
 public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase {
 
-    public static final List<String> KEYS = Collections.emptyList();
-    public static final List<String> ARGS = Collections.emptyList();
+    private static final List<String> KEYS = Collections.emptyList();
+    private static final List<String> ARGS = Collections.emptyList();
 
     @Test
     public void evalHandlesLongs() {
@@ -49,12 +50,31 @@ public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase 
 	assertArrayEquals(new byte[]{-0x60}, actual.getBytes());
     }
 
+    @Test
+    public void evalHandlesBitSets() {
+	jedis.setbit("bits", 0, true);
+	jedis.setbit("bits", 2, true);
+	jedis.setbit("bits", 8, true);
+	EvalResultNode actual = evaluate("return redis.call('get', 'bits')");
 
-    private EvalResultNode evaluate(String script) {
-	return jedis.eval(script, new PassthroughConverter(), KEYS, ARGS);
+	assertTrue("expected byte string", actual.isByteString());
+	assertEquals(bitSet(0, 2, 8), actual.getBitSet());
     }
 
-    private static class PassthroughConverter extends TypeSafeConverter<EvalResultNode> {
+
+    private BitSet bitSet(int... bits) {
+	BitSet bitSet = new BitSet();
+	for (int bit : bits) {
+	    bitSet.set(bit);
+	}
+	return bitSet;
+    }
+
+    private EvalResultNode evaluate(String script) {
+	return jedis.eval(script, new PassThroughConverter(), KEYS, ARGS);
+    }
+
+    private static class PassThroughConverter extends TypeSafeConverter<EvalResultNode> {
 	@Override
 	protected EvalResultNode doConvert(EvalResultNode node) {
 	    return node;
