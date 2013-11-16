@@ -1,13 +1,23 @@
 package redis.clients.jedis;
 
 import redis.clients.jedis.BinaryClient.LIST_POSITION;
-import redis.clients.util.SafeEncoder;
+import redis.clients.jedis.eval.DefaultEvalResultConverter;
+import redis.clients.jedis.eval.EvalResultConverter;
 import redis.clients.util.Slowlog;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommands, AdvancedJedisCommands, ScriptingCommands {
+    private EvalResultConverter defaultEvalResultConverter = new DefaultEvalResultConverter();
+
     public Jedis(final String host) {
 	super(host);
     }
@@ -2726,10 +2736,14 @@ public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommand
     }
 
     public Object eval(String script, int keyCount, String... params) {
+	return eval(script, defaultEvalResultConverter, keyCount, params);
+    }
+
+    private <T> T eval(String script, EvalResultConverter<T> converter, int keyCount, String[] params) {
 	client.setTimeoutInfinite();
 	client.eval(script, keyCount, params);
 
-	return getEvalResult();
+	return converter.convert(client.getOne());
     }
 
     public void subscribe(final JedisPubSub jedisPubSub,
@@ -2774,33 +2788,16 @@ public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommand
 	return eval(script, keys.size(), getParams(keys, args));
     }
 
+    public <T> T eval(String script, EvalResultConverter<T> converter, List<String> keys, List<String> args) {
+	return eval(script, converter, keys.size(), getParams(keys, args));
+    }
+
     public Object eval(String script) {
 	return eval(script, 0);
     }
 
     public Object evalsha(String script) {
 	return evalsha(script, 0);
-    }
-
-    private Object getEvalResult() {
-	return evalResult(client.getOne());
-    }
-
-    private Object evalResult(Object result) {
-	if (result instanceof byte[])
-	    return SafeEncoder.encode((byte[]) result);
-
-	if (result instanceof List<?>) {
-	    List<?> list = (List<?>) result;
-	    List<Object> listResult = new ArrayList<Object>(list.size());
-	    for (Object bin : list) {
-		listResult.add(evalResult(bin));
-	    }
-
-	    return listResult;
-	}
-
-	return result;
     }
 
     public Object evalsha(String sha1, List<String> keys, List<String> args) {
@@ -2811,7 +2808,7 @@ public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommand
 	checkIsInMulti();
 	client.evalsha(sha1, keyCount, params);
 
-	return getEvalResult();
+	return defaultEvalResultConverter.convert(client.getOne());
     }
 
     public Boolean scriptExists(String sha1) {
