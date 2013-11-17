@@ -3,6 +3,8 @@ package redis.clients.jedis;
 import redis.clients.jedis.BinaryClient.LIST_POSITION;
 import redis.clients.jedis.eval.DefaultEvalResultConverter;
 import redis.clients.jedis.eval.EvalResultConverter;
+import redis.clients.jedis.eval.EvalResultNode;
+import redis.clients.jedis.eval.EvalResultNodeConverter;
 import redis.clients.util.Slowlog;
 
 import java.net.URI;
@@ -16,7 +18,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommands, AdvancedJedisCommands, ScriptingCommands {
-    private EvalResultConverter defaultEvalResultConverter = new DefaultEvalResultConverter();
+    private final EvalResultConverter defaultEvalResultConverter = new DefaultEvalResultConverter();
+    private final EvalResultNodeConverter evalResultNodeConverter = new EvalResultNodeConverter();
 
     public Jedis(final String host) {
 	super(host);
@@ -2788,8 +2791,8 @@ public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommand
 	return eval(script, keys.size(), getParams(keys, args));
     }
 
-    public <T> T eval(String script, EvalResultConverter<T> converter, List<String> keys, List<String> args) {
-	return eval(script, converter, keys.size(), getParams(keys, args));
+    public EvalResultNode evalResultNode(String script, List<String> keys, List<String> args) {
+	return eval(script, evalResultNodeConverter, keys.size(), getParams(keys, args));
     }
 
     public Object eval(String script) {
@@ -2804,11 +2807,19 @@ public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommand
 	return evalsha(sha1, keys.size(), getParams(keys, args));
     }
 
+    public EvalResultNode evalshaResultNode(String sha1, List<String> keys, List<String> args) {
+	return evalsha(sha1, evalResultNodeConverter, keys.size(), getParams(keys, args));
+    }
+
     public Object evalsha(String sha1, int keyCount, String... params) {
+	return evalsha(sha1, defaultEvalResultConverter, keyCount, params);
+    }
+
+    private <T> T evalsha(String sha1, EvalResultConverter<T> converter, int keyCount, String... params) {
 	checkIsInMulti();
 	client.evalsha(sha1, keyCount, params);
 
-	return defaultEvalResultConverter.convert(client.getOne());
+	return converter.convert(client.getOne());
     }
 
     public Boolean scriptExists(String sha1) {
