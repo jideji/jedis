@@ -14,11 +14,23 @@ public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase 
     private static final List<String> ARGS = Collections.emptyList();
 
     @Test
+    public void evalHandlesNulls() {
+	EvalResultNode actual = eval("return nil");
+
+	assertTrue("expected null", actual.isNull());
+	assertNull("expected null list", actual.getList());
+	assertNull("expected null long", actual.getLong());
+	assertNull("expected null byte array", actual.getBytes());
+	assertNull("expected null bitset", actual.getBitSet());
+	assertNull("expected null string", actual.getString());
+    }
+
+    @Test
     public void evalHandlesLongs() {
 	EvalResultNode actual = eval("return 2");
 
 	assertTrue("expected long", actual.isLong());
-	assertEquals(2, actual.getLong());
+	assertEquals((Long) 2L, actual.getLong());
     }
 
     @Test
@@ -26,7 +38,7 @@ public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase 
 	EvalResultNode actual = evalsha("return 2");
 
 	assertTrue("expected long", actual.isLong());
-	assertEquals(2, actual.getLong());
+	assertEquals((Long) 2L, actual.getLong());
     }
 
     @Test
@@ -52,8 +64,8 @@ public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase 
 	assertTrue("expected list", actual.isList());
 	List<EvalResultNode> subList = actual.getList();
 	assertEquals(2, subList.size());
-	assertEquals(5, subList.get(0).getLong());
-	assertEquals(8, subList.get(1).getLong());
+	assertEquals((Long) 5L, subList.get(0).getLong());
+	assertEquals((Long) 8L, subList.get(1).getLong());
     }
 
     @Test
@@ -63,8 +75,8 @@ public class ScriptingCommandsCustomConversionTest extends JedisCommandTestBase 
 	assertTrue("expected list", actual.isList());
 	List<EvalResultNode> subList = actual.getList();
 	assertEquals(2, subList.size());
-	assertEquals(5, subList.get(0).getLong());
-	assertEquals(8, subList.get(1).getLong());
+	assertEquals((Long) 5L, subList.get(0).getLong());
+	assertEquals((Long) 8L, subList.get(1).getLong());
     }
 
     @Test

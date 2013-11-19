@@ -13,11 +13,19 @@ public class EvalResultNode {
 	this.node = node;
     }
 
+    public boolean isNull() {
+	return node == null;
+    }
+
     public boolean isList() {
 	return node instanceof List<?>;
     }
 
     public List<EvalResultNode> getList() {
+	if (isNull()) {
+	    return null;
+	}
+
 	List<EvalResultNode> list = new ArrayList<EvalResultNode>();
 	for (Object element : (List<?>) node) {
 	    list.add(new EvalResultNode(element));
@@ -29,8 +37,8 @@ public class EvalResultNode {
 	return node instanceof Number;
     }
 
-    public long getLong() {
-	return (Long) node;
+    public Long getLong() {
+	return !isNull() ? (Long) node : null;
     }
 
     public boolean isByteString() {
@@ -38,7 +46,7 @@ public class EvalResultNode {
     }
 
     public String getString() {
-	return SafeEncoder.encode((byte[]) node);
+	return !isNull() ? SafeEncoder.encode((byte[]) node) : null;
     }
 
     public byte[] getBytes() {
@@ -46,6 +54,10 @@ public class EvalResultNode {
     }
 
     public BitSet getBitSet() {
+	if (isNull()) {
+	    return null;
+	}
+
 	BitSet bitSet = new BitSet();
 
 	int bitSetIndex = 0;
